@@ -45,10 +45,14 @@ func indexHandler(response http.ResponseWriter, request *http.Request) {
 
 	type user struct {
 		Username string
+		Captions [20]string
+		Posters  [20]string
 	}
 
 	userData := user{
 		Username: getUserName(request),
+		Captions: captionList,
+		Posters:  captionPosterList,
 	}
 
 	if err != nil {
@@ -81,6 +85,9 @@ func main() {
 		panic(err)
 	}
 
+	// Update captions at start
+	getCaptionsAndPosters()
+
 	// Handle pages
 	router.HandleFunc("/", indexHandler)
 
@@ -90,6 +97,10 @@ func main() {
 	router.HandleFunc("/post/login", postLoginHandler).Methods("POST")
 	router.HandleFunc("/post/logout", postLogoutHandler).Methods("POST")
 	router.HandleFunc("/post/register", postRegisterHandler).Methods("POST")
+
+	// Caption routing
+	router.HandleFunc(urlCaption, captionHandler)
+	router.HandleFunc("/post/caption", postCaptionHandler).Methods("POST")
 
 	// IDK what this does but seems necessary
 	http.Handle("/", router)
