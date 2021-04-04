@@ -37,7 +37,7 @@ var db *sql.DB
 
 func getDate() string {
 	current := time.Now().UTC()
-	return current.String()
+	return current.Format("2006-01-02 15:04:05 -0700")
 }
 
 func indexHandler(response http.ResponseWriter, request *http.Request) {
@@ -99,8 +99,9 @@ func main() {
 	router.HandleFunc("/post/register", postRegisterHandler).Methods("POST")
 
 	// Caption routing
-	router.HandleFunc(urlCaption, captionHandler)
-	router.HandleFunc("/post/caption", postCaptionHandler).Methods("POST")
+	router.HandleFunc(urlCaptionCreate, captionCreateHandler)
+	router.HandleFunc("/post/caption", postCaptionCreateHandler).Methods("POST")
+	router.HandleFunc(urlCaption+"/{caption:[0-9]+}", captionHandler)
 
 	// IDK what this does but seems necessary
 	http.Handle("/", router)
