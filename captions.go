@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -39,6 +40,18 @@ func getCaptionID(caption string) (captionID int) {
 	}
 
 	return captionID
+}
+
+func getCaptionNameFromID(id int) (captionName string) {
+	result := db.QueryRow("SELECT caption FROM captions WHERE caption_id=$1", id)
+	err := result.Scan(&captionName)
+
+	if err != nil {
+		fmt.Printf("ERROR getCaptionNameFromID(%d): %s\n", id, err)
+		return
+	}
+
+	return captionName
 }
 
 func getCaptionsAndPosters() {
@@ -77,13 +90,20 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 	t, err := template.ParseFiles(tmplCaption)
 
 	vars := mux.Vars(request)
+	captionID, err := strconv.Atoi(vars["caption"])
+	if err != nil {
+		fmt.Printf("ERROR captionHandler Atoi: %s\n", err)
+		panic(err)
+	}
 
-	rows, err := db.Query("SELECT entry, user_id, date FROM entries WHERE caption_id=$1", vars["caption"])
+	rows, err := db.Query("SELECT entry, user_id, date FROM entries WHERE caption_id=$1", captionID)
 	if err != nil {
 		fmt.Printf("ERROR captionHandler 1: %s\n", err)
 		panic(err)
 	}
 	defer rows.Close()
+
+	captionName := getCaptionNameFromID(captionID)
 
 	var entries []DisplayEntry
 
@@ -100,13 +120,25 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 		entries = append(entries, DisplayEntry{Poster: getUserNameFromID(poster), Entry: entry, Date: date})
 	}
 
+	type CaptionData struct {
+		CaptionTitle string
+		Username     string
+		Entries      []DisplayEntry
+	}
+
+	cData := &CaptionData{
+		CaptionTitle: captionName,
+		Username:     getUserName(request),
+		Entries:      entries,
+	}
+
 	err = rows.Err()
 	if err != nil {
 		fmt.Printf("ERROR captionHandler 3: %s\n", err)
 		panic(err)
 	}
 
-	err = t.Execute(response, entries)
+	err = t.Execute(response, cData)
 
 	if err != nil {
 		return
