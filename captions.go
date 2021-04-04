@@ -26,10 +26,6 @@ type DisplayEntry struct {
 	Date   string
 }
 
-var captionIDList [captionCount]int
-var captionList [captionCount]string
-var captionPosterList [captionCount]string
-
 func getCaptionID(caption string) (captionID int) {
 	result := db.QueryRow("SELECT caption_id FROM captions WHERE caption=$1", caption)
 	err := result.Scan(&captionID)
@@ -52,38 +48,6 @@ func getCaptionNameFromID(id int) (captionName string) {
 	}
 
 	return captionName
-}
-
-func getCaptionsAndPosters() {
-	rows, err := db.Query("SELECT caption_id, caption, user_id FROM captions ORDER BY caption_id DESC LIMIT $1", captionCount)
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	var count = 0
-	for rows.Next() {
-		var id int
-		var caption string
-		var poster string
-		err = rows.Scan(&id, &caption, &poster)
-		if err != nil {
-			panic(err)
-		}
-
-		if count < captionCount {
-			captionIDList[count] = id
-			captionList[count] = caption
-			captionPosterList[count] = poster
-		}
-
-		count++
-	}
-
-	err = rows.Err()
-	if err != nil {
-		panic(err)
-	}
 }
 
 func captionHandler(response http.ResponseWriter, request *http.Request) {
@@ -200,9 +164,6 @@ func postCaptionCreateHandler(response http.ResponseWriter, request *http.Reques
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	// Update homepage list
-	getCaptionsAndPosters()
 
 	// Redirect user
 	http.Redirect(response, request, "/", 302)

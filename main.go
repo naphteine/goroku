@@ -41,25 +41,58 @@ func getDate() string {
 }
 
 func indexHandler(response http.ResponseWriter, request *http.Request) {
+	// Parse the template
 	t, err := template.ParseFiles("templates/index.html")
-
-	type user struct {
-		Username string
-		Captions [20]string
-		Posters  [20]string
-	}
-
-	userData := user{
-		Username: getUserName(request),
-		Captions: captionList,
-		Posters:  captionPosterList,
-	}
 
 	if err != nil {
 		return
 	}
 
-	err = t.Execute(response, userData)
+	// Get and prepare data
+	rows, err := db.Query("SELECT caption_id, caption FROM captions ORDER BY date DESC")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	type CaptionData struct {
+		ID      int
+		Caption string
+		Link    string
+	}
+
+	var captions []CaptionData
+
+	for rows.Next() {
+		var id int
+		var caption string
+		err = rows.Scan(&id, &caption)
+		if err != nil {
+			panic(err)
+		}
+
+		link := urlCaption + "/" + strconv.Itoa(id)
+		captions = append(captions, CaptionData{ID: id, Caption: caption, Link: link})
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	// Prepare index data
+	type IndexData struct {
+		Username string
+		Captions []CaptionData
+	}
+
+	data := &IndexData{
+		Username: getUserName(request),
+		Captions: captions,
+	}
+
+	// Execute template with prepared data
+	err = t.Execute(response, data)
 
 	if err != nil {
 		return
@@ -84,9 +117,6 @@ func main() {
 	if db, err = sql.Open("postgres", psqlconn); err != nil {
 		panic(err)
 	}
-
-	// Update captions at start
-	getCaptionsAndPosters()
 
 	// Handle pages
 	router.HandleFunc("/", indexHandler)
