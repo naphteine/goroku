@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -51,8 +50,6 @@ func getCaptionNameFromID(id int) (captionName string) {
 }
 
 func captionHandler(response http.ResponseWriter, request *http.Request) {
-	t, err := template.ParseFiles(tmplCaption)
-
 	vars := mux.Vars(request)
 	captionID, err := strconv.Atoi(vars["caption"])
 	if err != nil {
@@ -85,13 +82,15 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	type CaptionData struct {
+        PageTitle    string
 		CaptionTitle string
 		Username     string
 		CaptionID    int
-		Entries      []DisplayEntry
+        Entries      []DisplayEntry
 	}
 
 	cData := &CaptionData{
+        PageTitle: captionName+" "+Instance,
 		CaptionTitle: captionName,
 		Username:     getUserName(request),
 		CaptionID:    captionID,
@@ -104,7 +103,7 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 		panic(err)
 	}
 
-	err = t.Execute(response, cData)
+	err = tmpl[tmplCaption].Execute(response, cData)
 
 	if err != nil {
 		return
@@ -112,8 +111,6 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func captionCreateHandler(response http.ResponseWriter, request *http.Request) {
-	t, err := template.ParseFiles(tmplCaptionCreate)
-
 	type user struct {
 		Username string
 	}
@@ -122,15 +119,11 @@ func captionCreateHandler(response http.ResponseWriter, request *http.Request) {
 		Username: getUserName(request),
 	}
 
-	if err != nil {
-		return
-	}
-
 	if userData.Username == "" {
 		http.Redirect(response, request, "/", 302)
 	}
 
-	err = t.Execute(response, userData)
+	err := tmpl[tmplCaptionCreate].Execute(response, userData)
 
 	if err != nil {
 		return
@@ -168,7 +161,7 @@ func postCaptionCreateHandler(response http.ResponseWriter, request *http.Reques
 	}
 
 	// Redirect user
-	http.Redirect(response, request, "/", 302)
+	http.Redirect(response, request, urlCaption+"/"+strconv.Itoa(getCaptionID(strings.ToLower(caption))), 302)
 }
 
 func postEntryHandler(response http.ResponseWriter, request *http.Request) {

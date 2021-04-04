@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"html/template"
 	"net/http"
 	"regexp"
 
@@ -95,13 +94,7 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/", 302)
 	}
 
-	t, err := template.ParseFiles(tmplLogin)
-
-	if err != nil {
-		return
-	}
-
-	err = t.Execute(response, nil)
+	err := tmpl[tmplLogin].Execute(response, nil)
 
 	if err != nil {
 		return
@@ -113,13 +106,7 @@ func registerHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/", 302)
 	}
 
-	t, err := template.ParseFiles(tmplRegister)
-
-	if err != nil {
-		return
-	}
-
-	err = t.Execute(response, nil)
+	err := tmpl[tmplRegister].Execute(response, nil)
 
 	if err != nil {
 		return

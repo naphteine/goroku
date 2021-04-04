@@ -22,6 +22,8 @@ const (
 	Host      = "localhost"
 	Port      = 8080
 	hashCost  = 10
+	tmplIndex = "templates/index.html"
+	tmplParts = "templates/parts.html"
 	/*
 		Instance = "goroku"
 		dbHost   = "localhost"
@@ -34,6 +36,7 @@ const (
 
 var router = mux.NewRouter()
 var db *sql.DB
+var tmpl = make(map[string]*template.Template)
 
 func getDate() string {
 	current := time.Now().UTC()
@@ -41,13 +44,6 @@ func getDate() string {
 }
 
 func indexHandler(response http.ResponseWriter, request *http.Request) {
-	// Parse the template
-	t, err := template.ParseFiles("templates/index.html")
-
-	if err != nil {
-		return
-	}
-
 	// Get and prepare data
 	rows, err := db.Query("SELECT caption_id, caption FROM captions ORDER BY date DESC")
 	if err != nil {
@@ -92,7 +88,7 @@ func indexHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	// Execute template with prepared data
-	err = t.Execute(response, data)
+	err = tmpl[tmplIndex].Execute(response, data)
 
 	if err != nil {
 		return
@@ -117,6 +113,13 @@ func main() {
 	if db, err = sql.Open("postgres", psqlconn); err != nil {
 		panic(err)
 	}
+
+	// Parse the template files
+	tmpl[tmplIndex] = template.Must(template.ParseFiles(tmplIndex, tmplParts))
+	tmpl[tmplCaption] = template.Must(template.ParseFiles(tmplCaption, tmplParts))
+	tmpl[tmplCaptionCreate] = template.Must(template.ParseFiles(tmplCaptionCreate, tmplParts))
+	tmpl[tmplLogin] = template.Must(template.ParseFiles(tmplLogin, tmplParts))
+	tmpl[tmplRegister] = template.Must(template.ParseFiles(tmplRegister, tmplParts))
 
 	// Handle pages
 	router.HandleFunc("/", indexHandler)
