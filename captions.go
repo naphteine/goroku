@@ -18,11 +18,11 @@ type Caption struct {
 	hidden  bool
 }
 
-// Entry holds poster, content and caption data
-type Entry struct {
-	poster  string
-	content string
-	caption string
+// DisplayEntry represent entry details shown to user
+type DisplayEntry struct {
+	Poster string
+	Entry  string
+	Date   string
 }
 
 var captionIDList [captionCount]int
@@ -74,6 +74,8 @@ func getCaptionsAndPosters() {
 }
 
 func captionHandler(response http.ResponseWriter, request *http.Request) {
+	t, err := template.ParseFiles(tmplCaption)
+
 	vars := mux.Vars(request)
 
 	rows, err := db.Query("SELECT entry, user_id, date FROM entries WHERE caption_id=$1", vars["caption"])
@@ -82,6 +84,8 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 		panic(err)
 	}
 	defer rows.Close()
+
+	var entries []DisplayEntry
 
 	for rows.Next() {
 		var entry string
@@ -93,13 +97,19 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 			panic(err)
 		}
 
-		fmt.Fprintf(response, "%s %s %s", entry, getUserNameFromID(poster), date)
+		entries = append(entries, DisplayEntry{Poster: getUserNameFromID(poster), Entry: entry, Date: date})
 	}
 
 	err = rows.Err()
 	if err != nil {
 		fmt.Printf("ERROR captionHandler 3: %s\n", err)
 		panic(err)
+	}
+
+	err = t.Execute(response, entries)
+
+	if err != nil {
+		return
 	}
 }
 
