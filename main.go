@@ -124,14 +124,15 @@ func main() {
 	// Auth routing
 	router.HandleFunc(urlLogin, loginHandler)
 	router.HandleFunc(urlRegister, registerHandler)
-	router.HandleFunc("/post/login", postLoginHandler).Methods("POST")
-	router.HandleFunc("/post/logout", postLogoutHandler).Methods("POST")
-	router.HandleFunc("/post/register", postRegisterHandler).Methods("POST")
+	router.HandleFunc(urlPostLogin, postLoginHandler).Methods("POST")
+	router.HandleFunc(urlPostLogout, postLogoutHandler).Methods("POST")
+	router.HandleFunc(urlPostRegister, postRegisterHandler).Methods("POST")
 
-	// Caption routing
+	// Caption-entry routing
 	router.HandleFunc(urlCaptionCreate, captionCreateHandler)
-	router.HandleFunc("/post/caption", postCaptionCreateHandler).Methods("POST")
+	router.HandleFunc(urlPostCaption, postCaptionCreateHandler).Methods("POST")
 	router.HandleFunc(urlCaption+"/{caption:[0-9]+}", captionHandler)
+	router.HandleFunc(urlPostEntry+"/{caption:[0-9]+}", postEntryHandler).Methods("POST")
 
 	// IDK what this does but seems necessary
 	http.Handle("/", router)

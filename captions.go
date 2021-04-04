@@ -87,12 +87,14 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 	type CaptionData struct {
 		CaptionTitle string
 		Username     string
+		CaptionID    int
 		Entries      []DisplayEntry
 	}
 
 	cData := &CaptionData{
 		CaptionTitle: captionName,
 		Username:     getUserName(request),
+		CaptionID:    captionID,
 		Entries:      entries,
 	}
 
@@ -167,4 +169,39 @@ func postCaptionCreateHandler(response http.ResponseWriter, request *http.Reques
 
 	// Redirect user
 	http.Redirect(response, request, "/", 302)
+}
+
+func postEntryHandler(response http.ResponseWriter, request *http.Request) {
+	// Check request method
+	if request.Method != "POST" {
+		return
+	}
+	// Get fields
+	vars := mux.Vars(request)
+
+	caption, err := strconv.Atoi(vars["caption"])
+
+	if err != nil {
+		fmt.Printf("ERROR postEntryHandler Atoi: %s", err)
+		panic(err)
+	}
+
+	entry := request.FormValue("entry")
+	username := getUserName(request)
+	userid := getUserID(username)
+	date := getDate()
+
+	// Check if any of the fields are empty
+	if caption < 0 || entry == "" || username == "" {
+		http.Redirect(response, request, urlCaptionCreate, 302)
+	}
+
+	// Add entry to database
+	if _, err = db.Query("INSERT INTO entries (caption_id,user_id,entry,date,hidden) VALUES ($1,$2,$3,$4,$5)", caption, userid, entry, date, false); err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect user
+	http.Redirect(response, request, urlCaption+"/"+vars["caption"], 302)
 }
