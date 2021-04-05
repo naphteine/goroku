@@ -121,6 +121,7 @@ func captionCreateHandler(response http.ResponseWriter, request *http.Request) {
 
 	if userData.Username == "" {
 		http.Redirect(response, request, "/", 302)
+		return
 	}
 
 	err := tmpl[tmplCaptionCreate].Execute(response, userData)
@@ -146,7 +147,9 @@ func postCaptionCreateHandler(response http.ResponseWriter, request *http.Reques
 	// Check if any of the fields are empty
 	if caption == "" || entry == "" || username == "" {
 		http.Redirect(response, request, urlCaptionCreate, 302)
+		return
 	}
+
 	// Add caption to database
 	var err error
 	if _, err = db.Query("INSERT INTO captions (user_id,caption,date,updated,hidden) VALUES ($1,$2,$3,$4,$5)", userid, strings.ToLower(caption), date, date, false); err != nil {
@@ -169,6 +172,7 @@ func postEntryHandler(response http.ResponseWriter, request *http.Request) {
 	if request.Method != "POST" {
 		return
 	}
+
 	// Get fields
 	vars := mux.Vars(request)
 
@@ -187,6 +191,7 @@ func postEntryHandler(response http.ResponseWriter, request *http.Request) {
 	// Check if any of the fields are empty
 	if caption < 0 || entry == "" || username == "" {
 		http.Redirect(response, request, urlCaptionCreate, 302)
+		return
 	}
 
 	// Add entry to database
