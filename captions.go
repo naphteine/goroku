@@ -82,15 +82,15 @@ func captionHandler(response http.ResponseWriter, request *http.Request) {
 	}
 
 	type CaptionData struct {
-        PageTitle    string
+		PageTitle    string
 		CaptionTitle string
 		Username     string
 		CaptionID    int
-        Entries      []DisplayEntry
+		Entries      []DisplayEntry
 	}
 
 	cData := &CaptionData{
-        PageTitle: captionName+" "+Instance,
+		PageTitle:    captionName + " • " + Instance,
 		CaptionTitle: captionName,
 		Username:     getUserName(request),
 		CaptionID:    captionID,
@@ -149,7 +149,7 @@ func postCaptionCreateHandler(response http.ResponseWriter, request *http.Reques
 	}
 	// Add caption to database
 	var err error
-	if _, err = db.Query("INSERT INTO captions (user_id,caption,date,hidden) VALUES ($1,$2,$3,$4)", userid, strings.ToLower(caption), date, false); err != nil {
+	if _, err = db.Query("INSERT INTO captions (user_id,caption,date,updated,hidden) VALUES ($1,$2,$3,$4,$5)", userid, strings.ToLower(caption), date, date, false); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -192,6 +192,13 @@ func postEntryHandler(response http.ResponseWriter, request *http.Request) {
 	// Add entry to database
 	if _, err = db.Query("INSERT INTO entries (caption_id,user_id,entry,date,hidden) VALUES ($1,$2,$3,$4,$5)", caption, userid, entry, date, false); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Update caption last update time
+	if _, err = db.Query("UPDATE captions SET updated = $1 WHERE caption_id = $2", date, caption); err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("ERROR postEntryHandler UPDATE captions: %s", err)
 		return
 	}
 

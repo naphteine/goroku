@@ -19,7 +19,7 @@ const (
 	Program   = "goroku"
 	Version   = "v1.0"
 	Copyright = "All rights reserved. (c) 2021"
-	Host      = "localhost"
+	Host      = "127.0.0.1"
 	Port      = 8080
 	hashCost  = 10
 	tmplIndex = "templates/index.html"
@@ -44,8 +44,8 @@ func getDate() string {
 }
 
 func indexHandler(response http.ResponseWriter, request *http.Request) {
-	// Get and prepare data
-	rows, err := db.Query("SELECT caption_id, caption FROM captions ORDER BY date DESC")
+	// Get and prepare captions data
+	rows, err := db.Query("SELECT caption_id, caption FROM captions ORDER BY updated DESC NULLS LAST, date DESC")
 	if err != nil {
 		panic(err)
 	}
@@ -76,15 +76,54 @@ func indexHandler(response http.ResponseWriter, request *http.Request) {
 		panic(err)
 	}
 
+	// Prepare entries data
+	rows, err = db.Query("SELECT entry_id, caption_id, user_id, entry, date FROM entries ORDER BY updated DESC NULLS LAST, date DESC LIMIT $1", 20)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	type EntryData struct {
+		Caption string
+		User    string
+		Entry   string
+		Date    string
+		Link    string
+	}
+
+	var entries []EntryData
+
+	for rows.Next() {
+		var eid int
+		var cid int
+		var uid int
+		var entry string
+		var date string
+		err = rows.Scan(&eid, &cid, &uid, &entry, &date)
+		if err != nil {
+			panic(err)
+		}
+
+		link := urlCaption + "/" + strconv.Itoa(cid)
+		entries = append(entries, EntryData{Caption: getCaptionNameFromID(cid), User: getUserNameFromID(uid), Entry: entry, Date: date, Link: link})
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
 	// Prepare index data
 	type IndexData struct {
 		Username string
 		Captions []CaptionData
+		Entries  []EntryData
 	}
 
 	data := &IndexData{
 		Username: getUserName(request),
 		Captions: captions,
+		Entries:  entries,
 	}
 
 	// Execute template with prepared data
@@ -126,9 +165,9 @@ func main() {
 
 	// Auth routing
 	router.HandleFunc(urlLogin, loginHandler)
+	router.HandleFunc(urlLogout, LogoutHandler)
 	router.HandleFunc(urlRegister, registerHandler)
 	router.HandleFunc(urlPostLogin, postLoginHandler).Methods("POST")
-	router.HandleFunc(urlPostLogout, postLogoutHandler).Methods("POST")
 	router.HandleFunc(urlPostRegister, postRegisterHandler).Methods("POST")
 
 	// Caption-entry routing

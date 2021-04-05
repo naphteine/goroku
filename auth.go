@@ -21,9 +21,9 @@ var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
 	securecookie.GenerateRandomKey(32),
 )
+var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-][email protected][a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-
+// isEmailValid checks if the email provided passes the required structure and length.
 func isEmailValid(e string) bool {
 	if len(e) < 3 && len(e) > 254 {
 		return false
@@ -101,6 +101,11 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func LogoutHandler(response http.ResponseWriter, request *http.Request) {
+	clearSession(response)
+	http.Redirect(response, request, "/", 302)
+}
+
 func registerHandler(response http.ResponseWriter, request *http.Request) {
 	if getUserName(request) != "" {
 		http.Redirect(response, request, "/", 302)
@@ -163,7 +168,7 @@ func postLoginHandler(response http.ResponseWriter, request *http.Request) {
 			// Update user's last login date
 			if _, err = db.Query("UPDATE users SET last_login = $1 WHERE username = $2", getDate(), name); err != nil {
 				response.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(response, "Shit: %s", err)
+				fmt.Printf("ERROR postLoginHandler: %s", err)
 				return
 			}
 		}
@@ -171,24 +176,22 @@ func postLoginHandler(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, redirectTarget, 302)
 }
 
-func postLogoutHandler(response http.ResponseWriter, request *http.Request) {
-	clearSession(response)
-	http.Redirect(response, request, "/", 302)
-}
-
 func postRegisterHandler(response http.ResponseWriter, request *http.Request) {
 	// Check request method first
 	if request.Method != "POST" {
+		fmt.Printf("ERROR postRegisterHandler MethodCheck")
 		return
 	}
 
 	// Check if any field is empty
 	if request.FormValue("name") == "" || request.FormValue("passwd") == "" || request.FormValue("email") == "" {
+		fmt.Printf("ERROR postRegisterHandler ValueChecks")
 		return
 	}
 
 	// Check if the e-mail is valid or not
-	if !isEmailValid(request.FormValue("email")) {
+	if isEmailValid(request.FormValue("email")) != true {
+		fmt.Printf("ERROR postRegisterHandler EmailCheck(%s)", request.FormValue("email"))
 		return
 	}
 
@@ -196,6 +199,7 @@ func postRegisterHandler(response http.ResponseWriter, request *http.Request) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.FormValue("passwd")), hashCost)
 
 	if err != nil {
+		fmt.Printf("ERROR postRegisterHandler hashedPassword: %s", err)
 		return
 	}
 
@@ -209,6 +213,7 @@ func postRegisterHandler(response http.ResponseWriter, request *http.Request) {
 	// Insert data into database
 	if _, err = db.Query("INSERT INTO users (username,password,email,register_date,blocked) VALUES ($1,$2,$3,$4,$5)", u.Username, string(u.Password), u.Email, getDate(), false); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
+		fmt.Printf("ERROR postRegisterHandler intoDatabase: %s", err)
 		return
 	}
 
