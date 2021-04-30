@@ -101,6 +101,7 @@ func loginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// LogoutHandler clears session cookies and redirects user to homepage
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	clearSession(response)
 	http.Redirect(response, request, "/", 302)
@@ -119,21 +120,21 @@ func registerHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func postLoginHandler(response http.ResponseWriter, request *http.Request) {
-	name := request.FormValue("name")
+	email := request.FormValue("email")
 	pass := request.FormValue("passwd")
 	redirectTarget := urlLogin
 
-	if name != "" && pass != "" {
+	if email != "" && pass != "" {
 		var err error
 
 		inputPassword := request.FormValue("passwd")
 
 		u := Credentials{
-			Username: request.FormValue("name"),
+			Email: request.FormValue("email"),
 			Password: nil,
 		}
 
-		result := db.QueryRow("SELECT password FROM users WHERE username=$1", u.Username)
+		result := db.QueryRow("SELECT username, password FROM users WHERE email=$1", u.Email)
 
 		if err != nil {
 			// If there is an issue with the database, return a 500 error
@@ -143,7 +144,7 @@ func postLoginHandler(response http.ResponseWriter, request *http.Request) {
 
 		storedCreds := &Credentials{}
 
-		err = result.Scan(&storedCreds.Password)
+		err = result.Scan(&u.Username, &storedCreds.Password)
 		if err != nil {
 			// If an entry with the username does not exist, send an "Unauthorized"(401) status
 			if err == sql.ErrNoRows {
@@ -162,11 +163,11 @@ func postLoginHandler(response http.ResponseWriter, request *http.Request) {
 			redirectTarget = urlLogin
 		} else {
 			// If passwords MATCH; set session cookie and send user to homepage
-			setSession(name, response)
+            setSession(u.Username, response)
 			redirectTarget = "/"
 
 			// Update user's last login date
-			if _, err = db.Query("UPDATE users SET last_login = $1 WHERE username = $2", getDate(), name); err != nil {
+			if _, err = db.Query("UPDATE users SET last_login = $1 WHERE email = $2", getDate(), email); err != nil {
 				response.WriteHeader(http.StatusInternalServerError)
 				fmt.Printf("ERROR postLoginHandler: %s", err)
 				return

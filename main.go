@@ -19,7 +19,7 @@ const (
 	Program   = "goroku"
 	Version   = "v1.0"
 	Copyright = "All rights reserved. (c) 2021"
-	Host      = "127.0.0.1"
+    Host      = ""
 	Port      = 8080
 	hashCost  = 10
 	tmplIndex = "templates/index.html"

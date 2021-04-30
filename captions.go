@@ -190,7 +190,7 @@ func postEntryHandler(response http.ResponseWriter, request *http.Request) {
 
 	// Check if any of the fields are empty
 	if caption < 0 || entry == "" || username == "" {
-		http.Redirect(response, request, urlCaptionCreate, 302)
+        http.Redirect(response, request, urlCaption+"/"+vars["caption"], 302)
 		return
 	}
 
