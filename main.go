@@ -176,6 +176,9 @@ func main() {
 	router.HandleFunc(urlCaption+"/{caption:[0-9]+}", captionHandler)
 	router.HandleFunc(urlPostEntry+"/{caption:[0-9]+}", postEntryHandler).Methods("POST")
 
+	// File server
+	router.PathPrefix("/res/").Handler(http.StripPrefix("/res/", http.FileServer(http.Dir("static"))))
+
 	// IDK what this does but seems necessary
 	http.Handle("/", router)
 
